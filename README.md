@@ -88,70 +88,128 @@ Select *
 			type = 'Movie'
 	order by title;
 ```
-Objective: Retrieve all movies released in a specific year.
-
-4. 
-   
-5. 
-
-
-6. 
-
-
-7. Find the Top 5 Countries with the Most Content on Netflix
+4. Find the Top 5 Countries with the Most Content on Netflix
 ``` sql
-SELECT * 
-FROM
-(
-    SELECT 
-        UNNEST(STRING_TO_ARRAY(country, ',')) AS country,
-        COUNT(*) AS total_content
-    FROM netflix
-    GROUP BY 1
-) AS t1
-WHERE country IS NOT NULL
-ORDER BY total_content DESC
-LIMIT 5;
+select * from netflix;
+
+select trim(unnest(string_to_array(country, ','))) as country
+		from netflix;
+
+select country,
+	string_to_array(country, ',') as new_country,
+	unnest(string_to_array(country, ',')) as each_country
+	from netflix;
+	
+select 	each_country,
+		count(*)
+	from 
+		(select trim(unnest(string_to_array(country, ','))) as each_country
+		 from netflix) as t1
+	group by each_country
+	order by count(*) desc;
+```
+```sql
+-- CTE 
+with t1 as 
+		(select 
+			trim(unnest(string_to_array(country,','))) as each_country
+		from netflix)
+select 
+		each_country,
+		count(*) as total
+	from t1
+	group by each_country
+	order by total desc
+	limit 5;
 ```
 Objective: Identify the top 5 countries with the highest number of content items.
 
-6. Identify the Longest Movie
+5. Identify the Longest Movie
 ```sql
-SELECT 
-    *
-FROM netflix
-WHERE type = 'Movie'
-ORDER BY SPLIT_PART(duration, ' ', 1)::INT DESC;
+select type, title, duration,
+	max(split_part(duration,' ',1)::numeric) as max_length
+	from netflix
+	where 
+		type ilike '%movie%'
+		and 
+		duration is not null
+	group by title, type, duration
+	order by max_length desc;
+
+-- Alternative Method
+
+alter table netflix
+	add column durations int,
+	add column units varchar(10);
+
+update netflix
+	set
+		durations = REGEXP_REPLACE(duration, '\D', '', 'g') :: int,
+		units = case
+					when duration ilike '%min%' then 'mins'
+					when duration ilike  '%season%' then 'season/s'
+				end;
+
+alter table netflix
+	drop column duration;
+	
+select * from netflix;
+
+select 	
+		type,
+		title,
+		max(durations) as max_duration,
+		units
+	from netflix
+	where type ='Movie'
+	group by type, title, durations,  units
+	having durations = max(durations)
+	order by max_duration desc
+	limit 1;
 ```
 Objective: Find the movie with the longest duration.
 
-8. Find Content Added in the Last 5 Years
+6. Find Content Added in the Last 5 Years
 ```sql
-SELECT *
-FROM netflix
-WHERE TO_DATE(date_added, 'Month DD, YYYY') >= CURRENT_DATE - INTERVAL '5 years';
+select * from netflix;
+
+select *
+		from netflix
+		where date_added >= current_date - interval '5 years';
+
+select current_date;
 ```
 Objective: Retrieve content added to Netflix in the last 5 years.
 
-10. Find All Movies/TV Shows by Director 'Rajiv Chilaka'
+7. Find All Movies/TV Shows by Director 'Rajiv Chilaka'
 ```sql
-SELECT *
-FROM (
-    SELECT 
-        *,
-        UNNEST(STRING_TO_ARRAY(director, ',')) AS director_name
-    FROM netflix
-) AS t
-WHERE director_name = 'Rajiv Chilaka';
+select director from netflix;
+
+with t1 as 
+		(
+			select
+					*,
+					trim(unnest(string_to_array(director,','))) as dir
+				from netflix
+		)
+	select *
+		from t1
+		where dir ilike 'Rajiv Chilaka'
+;
+
 ```
 Objective: List all content directed by 'Rajiv Chilaka'.
 
-12. List All TV Shows with More Than 5 Seasons
+8. List All TV Shows with More Than 5 Seasons
 ```sql
-SELECT *
-FROM netflix
-WHERE type = 'TV Show'
-  AND SPLIT_PART(duration, ' ', 1)::INT > 5;
+select *
+		-- max(split_part(duration,' ')::numeric) as max_length
+		from netflix
+		where
+			type ilike '%TV%'
+			and 
+			split_part(duration,' ',1)::int >= 5 
+		order by duration desc;
 ```
 Objective: Identify TV shows with more than 5 seasons.
 
