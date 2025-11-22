@@ -102,13 +102,19 @@ select country,
 	unnest(string_to_array(country, ',')) as each_country
 	from netflix;
 
+-- CTE 
+with t1 as 
+		(select 
+			trim(unnest(string_to_array(country,','))) as each_country
+		from netflix)
 select 
-		trim(unnest(string_to_array(country, ','))) as each_country,
-		count(*)
-	from netflix
+		each_country,
+		count(*) as total
+	from t1
 	group by each_country
-	order by 2 desc
+	order by total desc
 	limit 5;
+
 
 -- 	5. Identify the longest movie
 select type,title,duration,
@@ -322,6 +328,7 @@ with content_category as
 	
 	
 	
+
 
 
 	
