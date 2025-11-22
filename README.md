@@ -272,14 +272,20 @@ Objective: Count the number of movies featuring 'Salman Khan' in the last 10 yea
 
 17. Find the Top 10 Actors Who Have Appeared in the Highest Number of Movies Produced in India
 ```sql
-SELECT 
-    UNNEST(STRING_TO_ARRAY(casts, ',')) AS actor,
-    COUNT(*)
-FROM netflix
-WHERE country = 'India'
-GROUP BY actor
-ORDER BY COUNT(*) DESC
-LIMIT 10;
+WITH t1 as
+		(select
+				trim(unnest(string_to_array(casts,','))) as actors	
+			from netflix
+			where country ilike '%India%'
+				and type = 'Movie'
+		)
+	select
+			actors,
+			count(*) as total_movies
+		from t1
+		group by actors
+		order by 2 desc
+		limit 10;
 ```
 Objective: Identify the top 10 actors with the most appearances in Indian-produced movies.
 
