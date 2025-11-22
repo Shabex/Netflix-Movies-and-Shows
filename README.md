@@ -213,32 +213,34 @@ select *
 ```
 Objective: Identify TV shows with more than 5 seasons.
 
-14. Count the Number of Content Items in Each Genre
+9. Count the Number of Content Items in Each Genre
 ```sql
-SELECT 
-    UNNEST(STRING_TO_ARRAY(listed_in, ',')) AS genre,
-    COUNT(*) AS total_content
-FROM netflix
-GROUP BY 1;
+with t1 as
+		(
+			select 
+				trim(unnest(string_to_array(listed_in,','))) as genre
+			from netflix
+		)
+	select	genre,
+			count(*)
+			from t1
+			group by genre
+			order by 2 desc;
 ```
 Objective: Count the number of content items in each genre.
 
 10.Find each year and the average numbers of content release in India on netflix.
 return top 5 year with highest avg content release!
 ```sql
-SELECT 
-    country,
-    release_year,
-    COUNT(show_id) AS total_release,
-    ROUND(
-        COUNT(show_id)::numeric /
-        (SELECT COUNT(show_id) FROM netflix WHERE country = 'India')::numeric * 100, 2
-    ) AS avg_release
-FROM netflix
-WHERE country = 'India'
-GROUP BY country, release_year
-ORDER BY avg_release DESC
-LIMIT 5;
+select 
+	 	country,
+		Extract(Year from date_added) as year,
+		count(*) as total,
+		Round(count(*)::numeric/(select count (*) from netflix where country = 'India')::numeric*100,2) as Avg_content
+	from netflix
+	where country ilike '%India%'
+	group by country, year
+	order by Avg_content desc;
 ```
 Objective: Calculate and rank years by the average number of content releases by India.
 
